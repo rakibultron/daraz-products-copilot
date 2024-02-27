@@ -5,6 +5,7 @@ const path = require("path");
 const { setTimeout } = require("node:timers/promises");
 require("dotenv").config({ path: path.resolve(__dirname, "../../.env") });
 const puppeteer = require("puppeteer-extra");
+const { autoScroll } = require("../helpers/autoscroll");
 
 const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 
@@ -72,7 +73,7 @@ queue.process(async (job) => {
     ],
   });
   const page = await browser.newPage();
-  await page.setDefaultNavigationTimeout(9000);
+  //   await page.setDefaultNavigationTimeout(9000);
 
   try {
     console.log("Opening daraz.....");
@@ -99,6 +100,67 @@ queue.process(async (job) => {
     await page.click(".ant-select-dropdown-menu-root > :nth-child(2)");
 
     await setTimeout(3000);
+    // await autoScroll(page);
+
+    const isButtonEnabled = async () => {
+      const button = await page.$(".ant-pagination-next");
+      const isDisabled = await button.evaluate(
+        (button) => button.getAttribute("aria-disabled") === "true"
+      );
+      return !isDisabled;
+    };
+
+    // Click on the button until it's disabled
+
+    const productsList = await page.$$(".box--ujueT> div");
+
+    // console.log({ productsList });
+    while (await isButtonEnabled()) {
+      await autoScroll(page);
+
+      for (const product of productsList) {
+        try {
+          const title = await product.$eval(
+            "#id-title",
+            (element) => element.textContent
+          );
+
+          const description = await product.$eval(
+            "#id-description",
+            (element) => element.textContent
+          );
+          const currentPrice = await product.$eval(
+            ".currency--GVKjl",
+            (element) => element.textContent
+          );
+          const image = await product.$eval("img", (element) =>
+            element.getAttribute("src")
+          );
+          const productUuid = await product.$eval(
+            '[data-tracking="product-card"]',
+            (element) => element.getAttribute("data-item-id")
+          );
+
+          if (title && description && currentPrice) {
+            console.log({
+              title,
+              description,
+              currentPrice,
+              image,
+              productUuid,
+            });
+          }
+        } catch (error) {
+          console.log("Something is wrong ======>>>", error);
+        }
+      }
+      //   page
+      //     .querySelector(".footer-first")
+      //     .scrollIntoView({ behavior: "smooth", block: "end", inline: "end" });
+      await page.waitForSelector(".ant-pagination-next");
+      await page.click(".ant-pagination-next");
+      await setTimeout(1000); // Add a delay to prevent overwhelming the server
+    }
 
     // await page.waitForTimeout(500);
     // await page.close();
