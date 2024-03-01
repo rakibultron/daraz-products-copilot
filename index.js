@@ -10,7 +10,28 @@ require("dotenv").config();
 
 const queue = require("./queues/product-queue");
 
-const productCategories = ["Car"];
+const productCategories = [
+  "Phones",
+  "Fashion",
+  "Electronics",
+  "Groceries",
+  "Beauty",
+  "Home",
+  "Sports",
+  "Watches",
+  "Kids",
+  "Auto",
+  "Computers",
+  "Tools",
+  "Stationery",
+  "Toys",
+  "Books",
+  "Pets",
+  "Islamic",
+  "Travel",
+  "Party",
+  "Kitchen",
+];
 
 console.log("redis check ====>", process.env.REDIS_DB_NAME);
 // Connect to MongoDB

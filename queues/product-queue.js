@@ -6,6 +6,7 @@ const { setTimeout } = require("node:timers/promises");
 require("dotenv").config({ path: path.resolve(__dirname, "../../.env") });
 const puppeteer = require("puppeteer-extra");
 const { autoScroll } = require("../helpers/autoscroll");
+const Product = require("../model/ProductModel");
 
 const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 
@@ -126,7 +127,7 @@ queue.process(async (job) => {
           );
 
           const description = await product.$eval(
-            "#id-description",
+            ".description-wrapper--zxysS > ul > li",
             (element) => element.textContent
           );
           const currentPrice = await product.$eval(
@@ -140,31 +141,67 @@ queue.process(async (job) => {
             '[data-tracking="product-card"]',
             (element) => element.getAttribute("data-item-id")
           );
+          //   const price = Number(currentPrice);
 
-          if (title && description && currentPrice) {
-            console.log({
-              title,
-              description,
-              currentPrice,
-              image,
+          //   console.log({
+          //     title,
+          //     description,
+          //     price: currentPrice,
+          //     image,
+          //     productUuid,
+          //   });
+          if (title && description && currentPrice && productUuid && image) {
+            const isproductFound = await Product.findOne({
               productUuid,
-            });
+            }).exec();
+
+            if (isproductFound) {
+              console.log("This product is already saved =====>>>", {
+                isproductFound,
+              });
+            } else {
+              const product = await new Product({
+                title,
+                description,
+                currentPrice,
+                image,
+                productUuid,
+              }).save();
+
+              console.log("Product saved to db ===>", product);
+            }
+
+            // if (!isproductFound) {
+            //   const product = await new Product({
+            //     title,
+            //     description,
+            //     currentPrice,
+            //     image,
+            //     productUuid,
+            //   }).save();
+
+            //   console.log("Product saved to db ===>", product);
+            // } else {
+            //   console.log("This product is all ready in db", isproductFound);
+            // }
           }
         } catch (error) {
-          console.log("Something is wrong ======>>>", error);
+          //   console.log("Something is wrong ======>>>", error);
         }
       }
       //   page
       //     .querySelector(".footer-first")
       //     .scrollIntoView({ behavior: "smooth", block: "end", inline: "end" });
       await page.waitForSelector(".ant-pagination-next");
+      await setTimeout(1000);
       await page.click(".ant-pagination-next");
-      await setTimeout(1000); // Add a delay to prevent overwhelming the server
+
+      // Add a delay to prevent overwhelming the server
     }
 
-    // await page.waitForTimeout(500);
-    // await page.close();
-    // await browser.close();
+    await page.waitForTimeout(500);
+    await page.close();
+    await browser.close();
   } catch (error) {
     await page.close();
     await browser.close();
